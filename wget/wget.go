@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"io/ioutil"
 )
 
 //TODO
@@ -31,10 +32,12 @@ import (
 // recursive downloads
 // timestamping
 // wgetrc
+
+//IsNoPrint added by Indy99
 type Wgetter struct {
 	IsContinue     bool
 	// should be set explicitly to false when running from CLI. uggo will detect as best as possible
-	AlwaysPipeStdin   bool 
+	AlwaysPipeStdin   bool
 	OutputFilename string
 	Timeout        int //TODO
 	Retries        int //TODO
@@ -50,12 +53,14 @@ type Wgetter struct {
 	HttpPassword    string //todo
 	IsNoCheckCertificate bool
 	SecureProtocol string
+	IsNoPrint bool
 
 	links []string
 }
 
 const (
-	VERSION              = "0.5.0"
+	//VERSION              = "0.5.0"
+	VERSION              = "0.5.1"		//by Indy99
 	FILEMODE os.FileMode = 0660
 )
 
@@ -81,12 +86,21 @@ func WgetCli(call []string) (error, int) {
 	inPipe := os.Stdin
 	outPipe := os.Stdout
 	errPipe := os.Stderr
+
 	wgetter := new(Wgetter)
 	wgetter.AlwaysPipeStdin = false
 	err, code := wgetter.ParseFlags(call, errPipe)
 	if err != nil {
 		return err, code
 	}
+
+	if wgetter.IsNoPrint {
+		file, err := ioutil.TempFile("", "wget.log")
+		if err != nil {fmt.Println(err); return err,404}
+		defer os.Remove(file.Name())
+		errPipe = file
+	}
+
 	return wgetter.Exec(inPipe, outPipe, errPipe)
 }
 
@@ -103,6 +117,7 @@ func (w *Wgetter) ParseFlags(call []string, errPipe io.Writer) (error, int) {
 	flagSet.AliasedStringVar(&w.OutputFilename, []string{"O","output-document"}, "", "specify filename")
 	flagSet.StringVar(&w.DefaultPage, "default-page", "index.html", "default page name")
 	flagSet.BoolVar(&w.IsNoCheckCertificate, "no-check-certificate", false, "skip certificate checks")
+	flagSet.BoolVar(&w.IsNoPrint, "noprint", false, "no print to console")
 
 	//some features are available in go-1.2+ only
 	extraOptions(flagSet, w)
