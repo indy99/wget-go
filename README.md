@@ -11,6 +11,7 @@ wget, partially re-implemented in go.
  * --continue
  * SSL: --no-check-certificate & --secure-protocol
  * --default-page=index.html
+ * --noprint (no print to console)
 
 ### To do
  
